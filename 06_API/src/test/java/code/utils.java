@@ -4,7 +4,13 @@ import com.github.javafaker.Faker;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
+import javafx.scene.shape.Path;
 import org.json.JSONObject;
+import org.testng.Assert;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import static io.restassured.RestAssured.given;
 
@@ -50,6 +56,50 @@ public class utils {
     }
 
 
+    public static String readFile(String path) {
+        //In this method we are reading file from the path given and convering the file to String and returning the data
+        try {
+            return new String (Files.readAllBytes(Paths.get(path)));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
+    }
+
+    public static void retrieveOrder(String token,String customerName){
+
+        RequestSpecification listOfOrdersRequest = given()
+                .headers("Authorization",token);
+
+        Response listOfOrdersResponse = listOfOrdersRequest.when().get("/orders");
+
+        listOfOrdersResponse.then().assertThat().statusCode(200);
+        System.out.println(listOfOrdersResponse.getBody().asString());
+
+        String actualCustomerName=listOfOrdersResponse.jsonPath().getString("customerName");
+        Assert.assertTrue(actualCustomerName.contains(customerName));
+
+    }
+
+    public static void updateMyOrder(String newCustomerName,String orderId, String token){
+        JSONObject objectNewName= new JSONObject();
+        objectNewName.put("customerName",newCustomerName);
+        String updateOrderRequestPayload = objectNewName.toString();
+
+        //Given
+        RequestSpecification updateOrderRequest = given()
+                .pathParam("orderId",orderId)
+                .header("Content-Type","application/json")
+                .header("Authorization",token)
+                .body(updateOrderRequestPayload);
+
+        //when
+        Response updateOrderResponse = updateOrderRequest.when().patch("/orders/{orderId}");
+
+        updateOrderResponse.then().assertThat().statusCode(204);
+
+    }
 
 
 
